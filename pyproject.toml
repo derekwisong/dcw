@@ -3,6 +3,9 @@ name = "dcw"
 version = "0.0.8"
 description = ""
 authors = ["Derek Wisong <derekwisong@gmail.com>"]
+license = "gpl-3.0-only"
+repository = "https://github.com/derekwisong/dcw"
+keywords = ["data", "pipeline", "data pipeline", "data engineering", "data science", "data management", "data quality"]
 readme = "README.md"
 packages = [
     { include = "dcw", from = "." },
