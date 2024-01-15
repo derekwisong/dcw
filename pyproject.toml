@@ -5,6 +5,7 @@ description = ""
 authors = ["Derek Wisong <derekwisong@gmail.com>"]
 license = "gpl-3.0-only"
 repository = "https://github.com/derekwisong/dcw"
+documentation = "https://derekwisong.github.io/dcw"
 keywords = ["data", "pipeline", "data pipeline", "data engineering", "data science", "data management", "data quality"]
 readme = "README.md"
 packages = [
