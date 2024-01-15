@@ -1,0 +1,10 @@
+.highlight .gp, .highlight .go { /* Generic.Prompt, Generic.Output */
+    user-select: none;
+}
+
+/* Alternatively, use the following to target pycon blocks more spcifically */
+/*
+.language-pycon .gp, .language-pycon .go {
+    user-select: none;
+}
+*/

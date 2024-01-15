@@ -1,0 +1,15 @@
+name: Pull Request to Main
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    uses: ./.github/workflows/build.yml
+    with:
+      python_version: ${{ matrix.python-version }}
