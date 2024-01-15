@@ -101,14 +101,15 @@ def main(args: list[str] | None = None) -> None:
     """Run the pipeline CLI."""
     logger.setLevel(logging.DEBUG)
     add_console_logging(logger)
-    etl_pipe_logger.setLevel(logger.level)
-    add_console_logging(etl_pipe_logger)
 
     parser = setup_parser()
     args = parser.parse_args(args)
 
     if not args.verbose:
         logger.setLevel(logging.INFO)
+
+    etl_pipe_logger.setLevel(logger.level)
+    add_console_logging(etl_pipe_logger)
 
     try:
         logger.debug(f"Executing command '{args.command}' using {args.func}")

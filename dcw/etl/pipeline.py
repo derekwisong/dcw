@@ -381,9 +381,9 @@ def run_pipeline(factory: PipelineFactory, opts: PipelineFactory.Options | None 
 
     pipeline = factory.get_pipeline(opts)
     extractor = factory.get_extractor(opts)
-    logging.debug(f"Starting extraction for '{pipeline.name}'")
+    logger.debug(f"Starting extraction for '{pipeline.name}'")
     pipeline.extract(extractor)
-    logging.debug(f"Pipeline extraction for '{pipeline.name}' finished")
+    logger.debug(f"Pipeline extraction for '{pipeline.name}' finished")
 
 
 def get_factory_class_by_path(path: str) -> type[PipelineFactory]:
