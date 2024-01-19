@@ -39,6 +39,11 @@ Additionally, The `PipelineFactory` class can be used to bundle the source of da
 required and optional parameters into a single place. Organizing pipelines this way enables built-in support to run them
 using the `dcw-pipeline` command line tool tool or the `run_pipeline` function.
 
+Modules:
+  extract: Base classes and support for extracting records from a source.
+  load: Base classes and support for loading records into a destination.
+  pipeline: Base classes and support for defining and running processing pipelines.
+  transform: Base classes and support for creating data transformations.
 
 Examples:
     A simple `ProcessingPipeline` that squares input numbers and loads them into a mock database:
@@ -109,7 +114,6 @@ Examples:
     9
     16
     ```
-
 """
 
 from .pipeline import ProcessingPipeline, PipelineFactory, run_pipeline
@@ -118,10 +122,10 @@ from .load import Loader
 from .transform import Transformation
 
 __all__ = [
-    ProcessingPipeline.__name__,
-    PipelineFactory.__name__,
-    run_pipeline.__name__,
-    Extractor.__name__,
-    Loader.__name__,
-    Transformation.__name__
+    "ProcessingPipeline",
+    "PipelineFactory",
+    "run_pipeline",
+    "Extractor",
+    "Loader",
+    "Transformation",
 ]

@@ -47,7 +47,7 @@ def main_list(args: argparse.Namespace) -> None:
 
     tbl = ((f"{p.__module__}.{p.__name__}", p.__doc__.strip().splitlines()[0] if p.__doc__ else "") for p in pipelines)
     print("Available pipelines:")
-    print(tabulate.tabulate(tbl, headers=("Path", "Description"), tablefmt="fancy_grid"))
+    print(tabulate.tabulate(tbl, headers=("Path", "Description"), tablefmt="grid"))
 
 
 def main_run(args: argparse.Namespace) -> None:

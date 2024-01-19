@@ -1,4 +1,4 @@
-"""Framework for data cleaning and wrangling.
+"""Framework for data collection and wrangling.
 
 Modules:
     cli: The `dcw-pipeline` command line interface.
@@ -8,4 +8,3 @@ Modules:
     system: Interacting with the running system.
     timing: Measuring and reporting execution time.
 """
-
