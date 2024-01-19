@@ -6,13 +6,12 @@ Examples:
     List the pipelines in the demo dataset:
     ```bash
     $ dcw-pipeline list dataset.demo
-
     Available pipelines:
-    ╒══════════════════════════════╤════════════════════════════════════════════════════════════════════════════╕
-    │ Path                         │ Description                                                                │
-    ╞══════════════════════════════╪════════════════════════════════════════════════════════════════════════════╡
-    │ dataset.demo.demo.MyPipeline │ Extract sequential numbers, square them, and load the result to a mock db. │
-    ╘══════════════════════════════╧════════════════════════════════════════════════════════════════════════════╛
+    +----------------------------------+----------------------------------------------------------------------------+
+    | Path                             | Description                                                                |
+    +==================================+============================================================================+
+    | dcw.etl.demo_pipeline.MyPipeline | Extract sequential numbers, square them, and load the result to a mock db. |
+    +----------------------------------+----------------------------------------------------------------------------+
     ```
 
     Run the pipeline using the `dcw-pipeline` command line tool:
@@ -28,7 +27,7 @@ Examples:
     ```
 
     Run the pipeline from code:
-    >>> from dataset.demo import MyPipeline
+    >>> from dcw.etl.demo_pipeline import MyPipeline
     >>> from dcw.etl import run_pipeline
     >>> pipeline = MyPipeline()
     >>> options = MyPipeline.Options(limit=5)
