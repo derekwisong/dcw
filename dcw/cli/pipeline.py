@@ -1,9 +1,19 @@
 """Command line interface to discover and run pipelines.
 
+When this module is installed, the `dcw-pipeline` command is available. It can be used to:
+
+- List available pipelines in a module
+- Show help for a pipeline
+- Run a pipeline
+
 Examples:
-    List pipelines in a module. `PATH` is a `module.submodule` containing `dcw.etl.pipeline.PipelineFactory` classes:
+    List pipelines in a module. `PATH` is a `module.submodule` containing `dcw.etl.pipeline.PipelineFactory` subclasses:
     ```bash
     $ python -m dcw.cli.pipeline list PATH
+    ```
+    and
+    ```bash
+    $ dcw-pipeline list PATH
     ```
 
     Show help for a pipeline.
@@ -19,6 +29,7 @@ import logging
 import tabulate
 
 from ..etl.pipeline import find_pipeline_factories, get_factory_class_by_path, run_pipeline, logger as etl_pipe_logger
+from ..etl.extract import logger as extract_logger
 from ..logging import add_console_logging
 
 logger = logging.getLogger(__name__)
@@ -27,6 +38,7 @@ logger = logging.getLogger(__name__)
 def main_list(args: argparse.Namespace) -> None:
     """Entrypoint when the 'list' command is used."""
     path = str(args.path)
+    logger.debug(f"Listing pipelines in {path}")
     pipelines = find_pipeline_factories(args.path, recursive=args.recursive)
 
     if not pipelines:
@@ -110,6 +122,9 @@ def main(args: list[str] | None = None) -> None:
 
     etl_pipe_logger.setLevel(logger.level)
     add_console_logging(etl_pipe_logger)
+
+    extract_logger.setLevel(logger.level)
+    add_console_logging(extract_logger)
 
     try:
         logger.debug(f"Executing command '{args.command}' using {args.func}")

@@ -1,6 +1,10 @@
 import json
-import pathlib
-from typing import Any, Iterator, Protocol
+import logging
+from pathlib import Path
+from typing import Any, Callable, Iterator, Protocol
+
+
+logger = logging.getLogger(__name__)
 
 
 class Extractor(Protocol):
@@ -22,68 +26,8 @@ class RecordExtractor(Extractor):
             yield item
 
 
-class Unpacker(Extractor):
-    """An Extractor that unpacks a record from another Extractor and yields each item as a record.
-
-    Example:
-
-        Extraction pipeline that iterates sublists from a list of lists and yields each item as a record:
-
-        >>> records = [[1, 2, 3], [4, 5, 6]]
-        >>> extractor = Unpacker(RecordExtractor(records))
-        >>> list(extractor.iter_records())
-        [1, 2, 3, 4, 5, 6]
-    """
-
-    def __init__(self, extractor: Extractor):
-        self.extractor = extractor
-
-    def iter_records(self):
-        for record in self.extractor.iter_records():
-            yield from record
-
-
-class Batcher(Extractor):
-    """An Extractor that batches records from another Extractor and yields each batch as a record.
-
-    Example:
-
-        Extraction pipeline that batches records from a list of numbers into lists of 2:
-
-        >>> records = [1, 2, 3, 4, 5, 6]
-        >>> extractor = Batcher(RecordExtractor(records), batch_size=2)
-        >>> list(extractor.iter_records())
-        [[1, 2], [3, 4], [5, 6]]
-    """
-
-    def __init__(self, extractor: Extractor, batch_size: int):
-        self.extractor = extractor
-        self.batch_size = batch_size
-
-    def iter_records(self):
-        batch = []
-        for record in self.extractor.iter_records():
-            batch.append(record)
-            if len(batch) == self.batch_size:
-                yield batch
-                batch = []
-        if batch:
-            yield batch
-
-
-class JsonFileExtractor(Extractor):
-    """An extractor that reads a JSON file and yields it as a single record."""
-
-    def __init__(self, filepath):
-        self.filepath = pathlib.Path(filepath)
-
-    def iter_records(self):
-        with open(self.filepath, "r") as f:
-            yield json.load(f)
-
-
 class FileWalkExtractor(Extractor):
-    """An extractor that walks a directory and yields each file as a record.
+    """An extractor that walks a directory and yields each `pathlib.Path` as a record.
 
     Attributes:
         path (pathlib.Path): The path to walk.
@@ -91,7 +35,7 @@ class FileWalkExtractor(Extractor):
         glob (str): The glob pattern to match.
     """
 
-    def __init__(self, path: str | pathlib.Path, *, recursive: bool = False, glob: str = "*", files_only: bool = True):
+    def __init__(self, path: str | Path, *, recursive: bool = False, glob: str = "*", files_only: bool = True):
         """Initialize the extractor.
 
         Arguments:
@@ -100,14 +44,50 @@ class FileWalkExtractor(Extractor):
             glob (str): The glob pattern to match.
             files_only (bool): If True, only extract/yield files (avoid directories).
         """
-        self.path = pathlib.Path(path)
+        self.path = Path(path)
         self.recursive = recursive
         self.glob = glob
         self.files_only = files_only
 
-    def iter_records(self) -> Iterator[pathlib.Path]:
+    def iter_records(self) -> Iterator[Path]:
         """Iterate over the files in the path."""
         for path in self.path.rglob(self.glob) if self.recursive else self.path.glob(self.glob):
             if self.files_only and path.is_dir():
                 continue
             yield path
+
+
+class JsonFileExtractor(Extractor):
+    """An extractor that walks a directory and yields each JSON file as a (path, data) tuple."""
+
+    def __init__(self, file_or_dir_path: str | Path, *, glob="*.json",
+                 on_error: Callable[[Path, Exception], None] | None = None):
+        """Create the extractor.
+
+        Arguments:
+            file_or_dir_path (str | pathlib.Path): The path to walk.
+            glob (str): The glob pattern to match.
+            on_error (Callable[[Path, Exception], None] | None): A callback to invoke when an error occurs."""
+        self.path = Path(file_or_dir_path)
+        self.glob = glob
+        self.on_error = on_error
+
+    def iter_records(self) -> Iterator[tuple[Path, Any]]:
+        """Iterate over the files in the path and yield each file as a (path, data) tuple.
+
+        If the data cannot be parsed as JSON, the `on_error` callback is invoked (if provided) or an exception is
+        raised, which may be caught by the caller.
+
+        Yields:
+            tuple[pathlib.Path, Any]: A tuple containing the path to the file and the JSON data parsed from the file.
+        """
+        extractor = FileWalkExtractor(self.path, files_only=True, glob=self.glob, recursive=True)
+        for path in extractor.iter_records():
+            try:
+                with path.open() as f:
+                    yield path, json.load(f)
+            except Exception as e:
+                if self.on_error is not None:
+                    self.on_error(path, e)
+                else:
+                    raise

@@ -1,14 +1,14 @@
 import pytest
 
-from dcw.etl.pipeline import DataPipeline, PipelineFactory, run_pipeline
+from dcw.etl.pipeline import ProcessingPipeline, PipelineFactory, run_pipeline
 from dcw.etl.extract import Extractor, RecordExtractor
 from dcw.etl.load import ListLoader, PrintLoader
 
 
-def test_datapipeline():
+def test_ProcessingPipeline():
     loader = ListLoader()
 
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_transform(lambda x: x ** 2)
     pipeline.add_loader(loader)
 
@@ -19,13 +19,13 @@ def test_datapipeline():
     assert loader.records == [1, 4, 9]
 
 
-def test_dual_load_datapipeline():
+def test_dual_load_ProcessingPipeline():
     # create two loaders (which load items to their own internal lists)
     loader = ListLoader()
     loader_squares = ListLoader()
 
     def create_pipeline():
-        source = DataPipeline()
+        source = ProcessingPipeline()
 
         # create a pipeline that loads to one list
         source.add_loader(loader)
@@ -45,14 +45,14 @@ def test_dual_load_datapipeline():
     assert loader_squares.records == [1, 4, 9]
 
 
-def test_datapipeline_with_extractor():
+def test_ProcessingPipeline_with_extractor():
     # initialize the data extractor class which will emit input data
     extractor = RecordExtractor([1, 2, 3])
     # set up a loader to store the pipeline output
     loader = ListLoader()
 
     # set up the pipeline
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_transform(lambda x: x ** 2)
     pipeline.add_loader(loader)
 
@@ -63,27 +63,27 @@ def test_datapipeline_with_extractor():
     assert loader.records == [1, 4, 9]
 
 
-def test_datapipeline_named():
-    pipeline = DataPipeline(name="test")
+def test_ProcessingPipeline_named():
+    pipeline = ProcessingPipeline(name="test")
     assert pipeline.name == "test"
     assert pipeline.end_name == "test"
 
 
-def test_datapipeline_transform_is_named():
-    pipeline = DataPipeline()
+def test_ProcessingPipeline_transform_is_named():
+    pipeline = ProcessingPipeline()
     pipeline.add_transform(lambda x: x ** 2, name="square")
     assert pipeline.end_name == "square"
 
 
-def test_datapipeline_loader_is_named():
-    pipeline = DataPipeline()
+def test_ProcessingPipeline_loader_is_named():
+    pipeline = ProcessingPipeline()
     pipeline.add_loader(ListLoader(), name="test_loader")
     # TODO this assertion should be replaced with something that doesnt require knowledge of the internals
     assert list(pipeline.current.downstreams)[0].name == "test_loader"
 
 
-def test_datapipeline_get_loaders():
-    pipeline = DataPipeline()
+def test_ProcessingPipeline_get_loaders():
+    pipeline = ProcessingPipeline()
     loader1 = ListLoader()
     loader2 = ListLoader()
     pipeline.add_loader(loader1)
@@ -91,20 +91,20 @@ def test_datapipeline_get_loaders():
     assert list(pipeline.get_loaders()) == [loader1, loader2]
 
 
-def test_datapipeline_batcher_is_named():
-    pipeline = DataPipeline()
+def test_ProcessingPipeline_batcher_is_named():
+    pipeline = ProcessingPipeline()
     pipeline.add_batcher(2, name="test_batcher")
     assert pipeline.end_name == "test_batcher"
 
 
-def test_datapipeline_flattener_is_named():
-    pipeline = DataPipeline()
+def test_ProcessingPipeline_flattener_is_named():
+    pipeline = ProcessingPipeline()
     pipeline.add_flattener(name="test_flattener")
     assert pipeline.end_name == "test_flattener"
 
 
-def test_datapipeline_describe():
-    pipeline = DataPipeline(name="test")
+def test_ProcessingPipeline_describe():
+    pipeline = ProcessingPipeline(name="test")
     pipeline.add_transform(lambda x: x ** 2, name="square")
     pipeline.add_loader(ListLoader(), name="square_loader")
     pipeline.add_transform(lambda x: 1 / x, name="reciprocal")
@@ -112,9 +112,9 @@ def test_datapipeline_describe():
     assert pipeline.describe() == ["test", "square", "square_loader", "reciprocal", "square_reciprocal_loader"]
 
 
-def test_datapipeline_test_loaders_at_end():
+def test_ProcessingPipeline_test_loaders_at_end():
     """Check that the pipeline correctly identifies when there is no loader at the end of a pipeline."""
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     assert pipeline._loader_at_end() is False
     pipeline.add_transform(lambda x: x ** 2, name="square")
     assert pipeline._loader_at_end() is False
@@ -128,11 +128,11 @@ def test_datapipeline_test_loaders_at_end():
     assert pipeline._loader_at_end() is True
 
 
-def test_datapipeline_batch():
+def test_ProcessingPipeline_batch():
     extractor = RecordExtractor([1, 2, 4])
     loader = ListLoader()
 
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_batcher(2, timeout=0.1)
     pipeline.add_loader(loader)
 
@@ -140,13 +140,13 @@ def test_datapipeline_batch():
     assert loader.records == [(1, 2), (4, )]
 
 
-def test_datapipeline_batcher_processes_all_records():
+def test_ProcessingPipeline_batcher_processes_all_records():
     NUM_RECORDS = 100
     BATCH_SIZE = 90  # a batch size that will result in an incomplete batch
 
     extractor = RecordExtractor(list(range(0, NUM_RECORDS)))
     loader = ListLoader()
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_batcher(BATCH_SIZE, timeout=1)
     pipeline.add_loader(loader)
     pipeline.extract(extractor)
@@ -160,28 +160,28 @@ def test_datapipeline_batcher_processes_all_records():
 # test running an empty set of records
 
 
-def test_datapipeline_batcher_no_records():
+def test_ProcessingPipeline_batcher_no_records():
     extractor = RecordExtractor([])
     loader = ListLoader()
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_batcher(10, timeout=1)
     pipeline.add_loader(loader)
     pipeline.extract(extractor)
     assert len(loader.records) == 0, "The batcher should not have processed any records"
 
 
-def test_datapipeline_transform_only():
+def test_ProcessingPipeline_transform_only():
     extractor = RecordExtractor([])
     loader = ListLoader()
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     pipeline.add_loader(loader)
     pipeline.extract(extractor)
     assert len(loader.records) == 0, "Loader should have received no records"
 
 
-def test_datapipeline_raises_if_extract_is_run_without_a_loader_present():
+def test_ProcessingPipeline_raises_if_extract_is_run_without_a_loader_present():
     """Test that extracting fails when when there is no loader."""
-    pipeline = DataPipeline()
+    pipeline = ProcessingPipeline()
     with pytest.raises(ValueError):
         pipeline.extract(RecordExtractor([1, 2, 3]))
 
@@ -206,9 +206,9 @@ def test_run_pipeline_from_factory():
 
             return MyExtractor()
 
-        def get_pipeline(self, opts: Options) -> DataPipeline:
+        def get_pipeline(self, opts: Options) -> ProcessingPipeline:
             """Return a pipeline that puts the extracted records into a list."""
-            pipeline = DataPipeline(name="test_pipeline_factory")
+            pipeline = ProcessingPipeline(name="test_pipeline_factory")
             pipeline.add_loader(ListLoader(destination))
             return pipeline
 
