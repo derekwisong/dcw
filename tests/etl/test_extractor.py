@@ -1,3 +1,6 @@
+import json
+import tempfile
+from pathlib import Path
 import dcw.etl.extract as extract
 
 
@@ -12,35 +15,56 @@ def test_RecordExtractor():
         assert record == dataset[i], f"Record[{i}] does not match: {record} != {dataset[i]}]"
 
 
-def test_Batcher():
-    dataset = [1, 2, 3, 4, 5, 6, 7]
-    extractor = extract.RecordExtractor(dataset)
-    batch_extractor = extract.Batcher(extractor, batch_size=2)
-    results = list(batch_extractor.iter_records())
-    assert results == [[1, 2], [3, 4], [5, 6], [7]]
+def test_JsonFileExtractor():
+    # various types of data to write to json files (key: filename, value: data)
+    dataset = {
+        "foo": 100,
+        "bar": {"a": 1, "b": 2},
+        "baz": ["a", 1],
+        "bif": None,
+        "box": True,
+        "bzo": "string",
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+
+        # write some files to the tmpdir
+        for name, data in dataset.items():
+            with (tmpdir / f"{name}.json").open("w") as f:
+                json.dump(data, f)
+
+        # use the extractor to read the files
+        extractor = extract.JsonFileExtractor(tmpdir)
+        n = 0
+        for path, data in extractor.iter_records():
+            assert dataset[path.stem] == data
+            n += 1
+
+        assert n == len(dataset)
 
 
-def test_Batcher_large_batch_size():
-    """Test that a batch_size larger than the dataset returns the entire dataset as a single batch."""
-    dataset = [1, 2, 3, 4, 5, 6, 7]
-    extractor = extract.RecordExtractor(dataset)
-    batch_extractor = extract.Batcher(extractor, batch_size=200)
-    results = list(batch_extractor.iter_records())
-    assert results == [[1, 2, 3, 4, 5, 6, 7]]
+def test_JsonFileExtractor_callback_on_error():
+    """Test that the callback is invoked when an error occurs."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
 
+        # write some files to the tmpdir
+        with (tmpdir / "foo.json").open("w") as f:
+            f.write("not json")
 
-def test_Batcher_zero_batch_size():
-    """Test that a batch_size of 0 returns the entire dataset as a single batch."""
-    dataset = [1, 2, 3, 4, 5, 6, 7]
-    extractor = extract.RecordExtractor(dataset)
-    batch_extractor = extract.Batcher(extractor, batch_size=0)
-    results = list(batch_extractor.iter_records())
-    assert results == [[1, 2, 3, 4, 5, 6, 7]]
+        # use the extractor to read the files
+        errors = []
 
+        def on_error(path, exc):
+            errors.append((path, exc))
 
-def test_Unpacker():
-    dataset = [[1, 2, 3], [4, 5, 6]]
-    extractor = extract.RecordExtractor(dataset)
-    unpacker = extract.Unpacker(extractor)
-    results = list(unpacker.iter_records())
-    assert results == [1, 2, 3, 4, 5, 6]
+        extractor = extract.JsonFileExtractor(tmpdir, on_error=on_error)
+        n = 0
+        for path, data in extractor.iter_records():
+            n += 1
+
+        assert n == 0
+        assert len(errors) == 1
+        assert errors[0][0] == tmpdir / "foo.json"
+        assert isinstance(errors[0][1], json.decoder.JSONDecodeError)

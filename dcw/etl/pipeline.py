@@ -23,10 +23,10 @@ from dcw.etl.load import Loader
 logger = logging.getLogger(__name__)
 
 
-class DataPipeline:
-    """DataPipeline can be used to process data streams.
+class ProcessingPipeline:
+    """ProcessingPipeline can be used to process data streams.
 
-    The DataPipeline class supports the extract-transform-load (ETL) design pattern. Data can be pushed into the
+    The ProcessingPipeline class supports the extract-transform-load (ETL) design pattern. Data can be pushed into the
     pipeline, where it moves through a series of transformations to a loader that does something with the data.
 
     Multiple loaders can be placed into the pipeline. This may be useful when it is desirable to store data at multiple
@@ -44,22 +44,23 @@ class DataPipeline:
 
     Examples:
         Create a pipeline that squares the input data and loads it into a list:
-        >>> from dcw.etl.pipeline import DataPipeline
+        >>> from dcw.etl.pipeline import ProcessingPipeline
         >>> from dcw.etl.load import ListLoader
         >>> records = []
-        >>> pipeline = DataPipeline()
+        >>> loader = ListLoader(records)
+        >>> pipeline = ProcessingPipeline()
         >>> pipeline.add_transform(lambda x: x ** 2)
-        >>> pipeline.add_loader(ListLoader(records))
+        >>> pipeline.add_loader(loader)
         >>> pipeline.push(2)
         >>> records
         [4]
 
         Multiple loaders with batching and flattening:
-        >>> from dcw.etl.pipeline import DataPipeline
+        >>> from dcw.etl.pipeline import ProcessingPipeline
         >>> from dcw.etl.load import ListLoader
         >>> batched = []
         >>> flattened = []
-        >>> pipeline = DataPipeline()
+        >>> pipeline = ProcessingPipeline()
         >>> pipeline.add_batcher(3)
         >>> pipeline.add_loader(ListLoader(batched))
         >>> pipeline.add_flattener()
@@ -81,7 +82,7 @@ class DataPipeline:
     source: streamz.Stream
 
     def __init__(self, name: str = None) -> None:
-        """Create a new DataPipeline.
+        """Create a new ProcessingPipeline.
 
         Arguments:
             name (str): Name of the pipeline.
@@ -188,9 +189,10 @@ class DataPipeline:
 
         A Loader is used to store data somewhere. This may be a database, or a file, or a list, or something else.
 
-        Pushing data into a DataPipeline that doesn't have a loader will result in the data never being processed, but
-        left sitting in the pipeline waiting for a loader to be added. Think of loader as a sink that is pulling data
-        through the pipeline.
+        Pushing data into a ProcessingPipeline that doesn't have a loader will result in the data never being processed,
+        but left sitting in the pipeline waiting for a loader to be added.
+
+        Think of loader as a sink that is pulling data through the pipeline.
 
         Arguments:
             loader (Loader): Loader instance that will be used to load data.
@@ -248,7 +250,7 @@ class PipelineFactory(abc.ABC):
     Examples:
         A full pipeline which can be run from the command line or another script:
         >>> from dcw.etl.load import ListLoader
-        >>> from dcw.etl.pipeline import DataPipeline, PipelineFactory, run_pipeline
+        >>> from dcw.etl.pipeline import ProcessingPipeline, PipelineFactory, run_pipeline
         >>> from dcw.etl.extract import Extractor
         >>>
         >>> class MyExtractor(Extractor):
@@ -266,9 +268,9 @@ class PipelineFactory(abc.ABC):
         ...     def get_extractor(self, opts: Options) -> Extractor:
         ...         return MyExtractor(opts.num)
         ...
-        ...     def get_pipeline(self, opts: Options) -> DataPipeline:
+        ...     def get_pipeline(self, opts: Options) -> ProcessingPipeline:
         ...         # return a data pipeline that simply loads squared records into a list
-        ...         pipeline = DataPipeline()
+        ...         pipeline = ProcessingPipeline()
         ...         pipeline.add_transform(lambda x: x ** 2)
         ...         pipeline.add_loader(ListLoader(destination))
         ...         return pipeline
@@ -289,17 +291,17 @@ class PipelineFactory(abc.ABC):
         Returns:
             logging.Logger: Logger instance.
         """
-        yield
+        return iter([])
 
     @abc.abstractmethod
-    def get_pipeline(self, opts: Options) -> DataPipeline:
+    def get_pipeline(self, opts: Options) -> ProcessingPipeline:
         """Get the data processing pipeline that will be used to process extracted data.
 
         Arguments:
             opts (Options): Options instance.
 
         Returns:
-            DataPipeline: DataPipeline instance.
+            ProcessingPipeline: ProcessingPipeline instance.
         """
         pass
 
@@ -437,6 +439,7 @@ def find_pipeline_factories(module: str | ModuleType, *, recursive: bool = False
 
     while len(modules) > 0:
         module = modules.popleft()
+        logger.debug(f"Searching for PipelineFactory subclasses in {module.__name__}")
         members = inspect.getmembers(
             module,
             predicate=lambda x: inspect.isclass(x) and issubclass(x, PipelineFactory) and x != PipelineFactory)

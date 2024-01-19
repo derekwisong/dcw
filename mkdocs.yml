@@ -4,7 +4,7 @@ edit_uri: edit/main/docs/
 
 nav:
   - Home: index.md
-  - Code Reference: reference/  
+  - Reference: reference/  
 
 plugins:
   - mkdocstrings
@@ -34,6 +34,9 @@ theme:
   features:
     - search.suggest
     - search.highlight
+    - navigation.tabs
+    - navigation.path
+    - navigation.expand
   palette: 
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
